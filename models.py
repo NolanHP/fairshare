@@ -31,7 +31,7 @@ class Expense(Base):
     
     id = Column(Integer, primary_key= True, index = True)
     description = Column(String, nullable=False)
-    amount = Column(Float, nullable = False)
+    amount_cents = Column(Integer, nullable = False)
     paid_by = Column(Integer, ForeignKey("users.id"))
     group_id = Column(Integer, ForeignKey("groups.id"))
     
@@ -41,6 +41,6 @@ class ExpenseSplit(Base):
     id = Column(Integer, primary_key=True, index = True)
     expense_id = Column(Integer, ForeignKey("expenses.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
-    amount = Column(Float, nullable=False)
+    amount_cents = Column(Integer, nullable=False)
 
 Base.metadata.create_all(bind=engine)
