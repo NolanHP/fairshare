@@ -6,10 +6,13 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, get_db
 from models import User
 import bcrypt
+import os
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-SECRET_KEY = "silly-sally-had-a-silly-little-lamb"
+# Read the signing key from the environment so it's never committed.
+# The fallback is for local development only.
+SECRET_KEY = os.environ.get("FAIRSHARE_SECRET_KEY", "dev-only-insecure-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

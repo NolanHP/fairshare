@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FairShare</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a65;
+    --line: #e3e1da; --accent: #1f6f5c; --accent-ink: #ffffff;
+    --pos: #1f6f5c; --neg: #b03a2e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--card); }
+  header h1 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+  header h1 span { color: var(--accent); }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 16px; }
+  .layout { display: grid; grid-template-columns: 240px 1fr; gap: 20px; }
+  @media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  input[type=text], input[type=email], input[type=password] {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: #fff; }
+  label.field { display: block; margin-bottom: 10px; font-size: 13px; color: var(--muted); }
+  label.field input { margin-top: 4px; color: var(--ink); }
+  button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > input { flex: 1; }
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  ul.plain li { padding: 7px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; }
+  ul.plain li:last-child { border-bottom: none; }
+  .group-link { display: block; width: 100%; text-align: left; background: transparent; color: var(--ink); border: none; padding: 8px 10px; border-radius: 6px; }
+  .group-link.active { background: #e7f0ec; color: var(--accent); font-weight: 600; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .pos { color: var(--pos); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .neg { color: var(--neg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .num { font-variant-numeric: tabular-nums; }
+  .error { color: var(--neg); font-size: 13px; min-height: 1.2em; margin-top: 6px; }
+  .checks label { display: inline-flex; gap: 6px; align-items: center; margin: 0 14px 6px 0; font-size: 14px; }
+  .auth { max-width: 380px; margin: 40px auto; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Fair<span>Share</span></h1>
+  <div class="row">
+    <span id="who" class="muted"></span>
+    <button id="logout" class="ghost hidden">Log out</button>
+  </div>
+</header>
+
+<main>
+  <!-- ---------- login / register ---------- -->
+  <section id="auth-view" class="auth card">
+    <h2>Sign in</h2>
+    <form id="auth-form">
+      <label class="field">Email <input id="auth-email" type="email" required></label>
+      <label class="field">Password <input id="auth-password" type="password" required maxlength="72"></label>
+      <div class="row">
+        <button type="submit" data-mode="login">Log in</button>
+        <button type="submit" data-mode="register" class="ghost">Create account</button>
+      </div>
+      <div id="auth-error" class="error"></div>
+    </form>
+  </section>
+
+  <!-- ---------- app ---------- -->
+  <section id="app-view" class="layout hidden">
+    <aside>
+      <div class="card">
+        <h2>Your groups</h2>
+        <div id="group-list"></div>
+        <form id="group-form" class="row" style="margin-top:10px">
+          <input id="group-name" type="text" placeholder="New group name" required>
+          <button type="submit">Add</button>
+        </form>
+        <div id="group-error" class="error"></div>
+      </div>
+    </aside>
+
+    <div id="group-view">
+      <div id="no-group" class="card muted">Create or pick a group to get started.</div>
+
+      <div id="group-detail" class="hidden">
+        <div class="grid2">
+          <div class="card">
+            <h2 id="group-title">Members</h2>
+            <ul id="members" class="plain"></ul>
+            <form id="member-form" class="row" style="margin-top:10px">
+              <input id="member-email" type="email" placeholder="Add member by email" required>
+              <button type="submit">Add</button>
+            </form>
+            <div id="member-error" class="error"></div>
+          </div>
+
+          <div class="card">
+            <h2>Add an expense (you paid)</h2>
+            <form id="expense-form">
+              <label class="field">Description <input id="exp-desc" type="text" required></label>
+              <label class="field">Amount ($) <input id="exp-amount" type="text" inputmode="decimal" placeholder="10.00" required></label>
+              <div class="muted" style="margin-bottom:4px">Split equally between</div>
+              <div id="exp-participants" class="checks"></div>
+              <button type="submit" style="margin-top:8px">Add expense</button>
+              <div id="expense-error" class="error"></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <h2>Balances</h2>
+            <ul id="balances" class="plain"></ul>
+          </div>
+          <div class="card">
+            <h2>Suggested settlement</h2>
+            <ul id="settlement" class="plain"></ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Expenses</h2>
+          <ul id="expenses" class="plain"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ---------------- state ----------------
+// The JWT is kept in localStorage so a page refresh doesn't log you out.
+// Trade-off: any script running on the page can read localStorage (XSS risk).
+// A production app might use an httpOnly cookie instead.
+const state = { token: null, me: null, groups: [], groupId: null, members: [] };
+try { state.token = localStorage.getItem("fairshare_token"); } catch (e) {}
+
+const $ = (id) => document.getElementById(id);
+
+// ---------------- helpers ----------------
+
+// Escape user-provided text before putting it into HTML (prevents XSS).
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// Cents -> "$12.34" using integer math only (no floats).
+function money(cents) {
+  const sign = cents < 0 ? "-" : "";
+  const abs = Math.abs(cents);
+  return `${sign}$${Math.floor(abs / 100)}.${String(abs % 100).padStart(2, "0")}`;
+}
+
+// "12.3" -> 1230. Parses the string instead of doing parseFloat(x) * 100,
+// which can be off (e.g. 0.29 * 100 = 28.999999999999996 in JavaScript).
+function toCents(text) {
+  const m = text.trim().match(/^(\d+)(?:\.(\d{1,2}))?$/);
+  if (!m) return null;
+  return parseInt(m[1], 10) * 100 + parseInt((m[2] || "0").padEnd(2, "0"), 10);
+}
+
+function emailOf(userId) {
+  const m = state.members.find(m => m.user_id === userId);
+  return m ? m.email : `user ${userId}`;
+}
+
+// Every API call goes through here: attaches the token and turns errors into messages.
+async function api(path, { method = "GET", body, form } = {}) {
+  const headers = {};
+  if (state.token) headers["Authorization"] = `Bearer ${state.token}`;
+  let payload;
+  if (form) {               // /login expects form data (OAuth2 password flow)
+    payload = new URLSearchParams(form);
+  } else if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
+  }
+  const res = await fetch(path, { method, headers, body: payload });
+  if (res.status === 401 && path !== "/login") { logout(); throw new Error("Session expired, please log in again"); }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    let msg = data && data.detail;
+    if (Array.isArray(msg)) msg = msg.map(d => d.msg).join("; ");  // pydantic validation errors
+    throw new Error(msg || `Request failed (${res.status})`);
+  }
+  return data;
+}
+
+// ---------------- auth ----------------
+
+$("auth-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const mode = e.submitter.dataset.mode;
+  const email = $("auth-email").value.trim();
+  const password = $("auth-password").value;
+  $("auth-error").textContent = "";
+  try {
+    if (mode === "register") await api("/register", { method: "POST", body: { email, password } });
+    const tok = await api("/login", { method: "POST", form: { username: email, password } });
+    state.token = tok.access_token;
+    try { localStorage.setItem("fairshare_token", state.token); } catch (e) {}
+    await start();
+  } catch (err) {
+    $("auth-error").textContent = err.message;
+  }
+});
+
+function logout() {
+  state.token = null; state.me = null; state.groupId = null;
+  try { localStorage.removeItem("fairshare_token"); } catch (e) {}
+  $("app-view").classList.add("hidden");
+  $("auth-view").classList.remove("hidden");
+  $("logout").classList.add("hidden");
+  $("who").textContent = "";
+}
+$("logout").addEventListener("click", logout);
+
+// ---------------- groups ----------------
+
+async function loadGroups() {
+  state.groups = await api("/groups");
+  $("group-list").innerHTML = state.groups.length
+    ? state.groups.map(g =>
+        `<button class="group-link ${g.id === state.groupId ? "active" : ""}" data-id="${g.id}">${esc(g.name)}</button>`
+      ).join("")
+    : `<div class="muted">No groups yet.</div>`;
+}
+
+$("group-list").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-id]");
+  if (btn) selectGroup(Number(btn.dataset.id));
+});
+
+$("group-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("group-error").textContent = "";
+  try {
+    const g = await api("/groups", { method: "POST", body: { name: $("group-name").value.trim() } });
+    $("group-name").value = "";
+    await selectGroup(g.id);
+  } catch (err) { $("group-error").textContent = err.message; }
+});
+
+async function selectGroup(id) {
+  state.groupId = id;
+  await loadGroups();
+  await loadGroupDetail();
+}
+
+// Re-fetches everything for the selected group. Simple and always consistent.
+async function loadGroupDetail() {
+  const gid = state.groupId;
+  $("no-group").classList.toggle("hidden", gid !== null);
+  $("group-detail").classList.toggle("hidden", gid === null);
+  if (gid === null) return;
+
+  const [group, expenses, balances, transfers] = await Promise.all([
+    api(`/groups/${gid}`),
+    api(`/groups/${gid}/expenses`),
+    api(`/groups/${gid}/balances`),
+    api(`/groups/${gid}/settlement`),
+  ]);
+  state.members = group.members;
+
+  $("group-title").textContent = `${group.name} · members`;
+  $("members").innerHTML = group.members.map(m =>
+    `<li><span>${esc(m.email)}${m.user_id === state.me.id ? " (you)" : ""}</span><span class="muted">${esc(m.role)}</span></li>`
+  ).join("");
+
+  $("exp-participants").innerHTML = group.members.map(m =>
+    `<label><input type="checkbox" value="${m.user_id}" checked> ${esc(m.email)}</label>`
+  ).join("");
+
+  $("balances").innerHTML = balances.map(b => {
+    const cls = b.balance_cents > 0 ? "pos" : b.balance_cents < 0 ? "neg" : "num";
+    const note = b.balance_cents > 0 ? "is owed" : b.balance_cents < 0 ? "owes" : "settled";
+    return `<li><span>${esc(b.email)} <span class="muted">${note}</span></span><span class="${cls}">${money(b.balance_cents)}</span></li>`;
+  }).join("");
+
+  $("settlement").innerHTML = transfers.length
+    ? transfers.map(t =>
+        `<li><span>${esc(emailOf(t.from_user_id))} → ${esc(emailOf(t.to_user_id))}</span><span class="num">${money(t.amount_cents)}</span></li>`
+      ).join("")
+    : `<li class="muted">Everyone is settled up.</li>`;
+
+  $("expenses").innerHTML = expenses.length
+    ? expenses.map(x => {
+        const parts = x.splits.map(s => `${esc(emailOf(s.user_id))} ${money(s.amount_cents)}`).join(", ");
+        return `<li><span><strong>${esc(x.description)}</strong><br>
+                <span class="muted">paid by ${esc(emailOf(x.paid_by))} · ${parts}</span></span>
+                <span class="num">${money(x.amount_cents)}</span></li>`;
+      }).join("")
+    : `<li class="muted">No expenses yet.</li>`;
+}
+
+$("member-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("member-error").textContent = "";
+  try {
+    await api(`/groups/${state.groupId}/members`, { method: "POST", body: { email: $("member-email").value.trim() } });
+    $("member-email").value = "";
+    await loadGroupDetail();
+  } catch (err) { $("member-error").textContent = err.message; }
+});
+
+$("expense-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("expense-error").textContent = "";
+  const cents = toCents($("exp-amount").value);
+  if (cents === null || cents <= 0) { $("expense-error").textContent = "Enter an amount like 12.50"; return; }
+  const participant_ids = [...document.querySelectorAll("#exp-participants input:checked")].map(i => Number(i.value));
+  if (!participant_ids.length) { $("expense-error").textContent = "Pick at least one person"; return; }
+  try {
+    await api(`/groups/${state.groupId}/expenses`, {
+      method: "POST",
+      body: { description: $("exp-desc").value.trim(), amount_cents: cents, participant_ids },
+    });
+    $("exp-desc").value = ""; $("exp-amount").value = "";
+    await loadGroupDetail();
+  } catch (err) { $("expense-error").textContent = err.message; }
+});
+
+// ---------------- startup ----------------
+
+async function start() {
+  state.me = await api("/me");
+  $("who").textContent = state.me.email;
+  $("logout").classList.remove("hidden");
+  $("auth-view").classList.add("hidden");
+  $("app-view").classList.remove("hidden");
+  await loadGroups();
+  if (state.groupId === null && state.groups.length) state.groupId = state.groups[0].id;
+  if (state.groupId !== null) await selectGroup(state.groupId);
+  else await loadGroupDetail();
+}
+
+if (state.token) start().catch(() => logout());
+</script>
+</body>
+</html>
